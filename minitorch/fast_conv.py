@@ -87,11 +87,48 @@ def _tensor_conv1d(
         and in_channels == in_channels_
         and out_channels == out_channels_
     )
-    s1 = input_strides
-    s2 = weight_strides
+    input_stride = input_strides
+    weight_stride = weight_strides
 
-    # TODO: Implement for Task 4.1.
-    raise NotImplementedError("Need to implement for Task 4.1")
+    for batch_index in prange(batch):  # Iterate over each batch
+        for out_channel in prange(out_channels):  # Iterate over output channels
+            for out_position in prange(out_width):  # Iterate over output width positions
+                accumulated_sum = 0.0
+
+                for in_channel in prange(in_channels):  # Iterate over input channels
+                    for kernel_position in prange(kw):  # Iterate over kernel width
+                        # Determine the input position based on reverse flag
+                        if reverse:
+                            input_position = out_position - kernel_position
+                        else:
+                            input_position = out_position + kernel_position
+
+                        # Ensure the input position is within valid bounds
+                        if 0 <= input_position < width:
+                            # Compute flat index for input and weight tensors
+                            input_index = (
+                                batch_index * input_stride[0]
+                                + in_channel * input_stride[1]
+                                + input_position * input_stride[2]
+                            )
+                            weight_index = (
+                                out_channel * weight_stride[0]
+                                + in_channel * weight_stride[1]
+                                + kernel_position * weight_stride[2]
+                            )
+
+                            # Accumulate the convolution result
+                            accumulated_sum += (
+                                input[input_index] * weight[weight_index]
+                            )
+
+                # Store the accumulated value in the output tensor
+                out_index = (
+                    batch_index * out_strides[0]
+                    + out_channel * out_strides[1]
+                    + out_position * out_strides[2]
+                )
+                out[out_index] = accumulated_sum
 
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
@@ -203,7 +240,7 @@ def _tensor_conv2d(
         reverse (bool): anchor weight at top-left or bottom-right
 
     """
-    batch_, out_channels, _, _ = out_shape
+    batch_, out_channels, out_height, out_width = out_shape
     batch, in_channels, height, width = input_shape
     out_channels_, in_channels_, kh, kw = weight_shape
 
@@ -219,8 +256,50 @@ def _tensor_conv2d(
     s10, s11, s12, s13 = s1[0], s1[1], s1[2], s1[3]
     s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
 
-    # TODO: Implement for Task 4.2.
-    raise NotImplementedError("Need to implement for Task 4.2")
+    for batch_index in prange(batch):  # Iterate over batches
+        for out_channel in prange(out_channels):  # Iterate over output channels
+            for out_h in prange(out_height):  # Iterate over output height
+                for out_w in prange(out_width):  # Iterate over output width
+                    accumulated_sum = 0.0  # Initialize accumulator
+
+                    for in_channel in range(in_channels):  # Iterate over input channels
+                        for kernel_h in range(kh):  # Iterate over kernel height
+                            for kernel_w in range(kw):  # Iterate over kernel width
+                                # Calculate input indices
+                                if reverse:
+                                    input_h = out_h - kernel_h
+                                    input_w = out_w - kernel_w
+                                else:
+                                    input_h = out_h + kernel_h
+                                    input_w = out_w + kernel_w
+
+                                # Check bounds for input indices
+                                if 0 <= input_h < height and 0 <= input_w < width:
+                                    input_index = (
+                                        batch_index * s10
+                                        + in_channel * s11
+                                        + input_h * s12
+                                        + input_w * s13
+                                    )
+                                    weight_index = (
+                                        out_channel * s20
+                                        + in_channel * s21
+                                        + kernel_h * s22
+                                        + kernel_w * s23
+                                    )
+                                    # Accumulate the convolution result
+                                    accumulated_sum += (
+                                        input[input_index] * weight[weight_index]
+                                    )
+
+                    # Store the result in the output tensor
+                    out_index = (
+                        batch_index * out_strides[0]
+                        + out_channel * out_strides[1]
+                        + out_h * out_strides[2]
+                        + out_w * out_strides[3]
+                    )
+                    out[out_index] = accumulated_sum
 
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)
