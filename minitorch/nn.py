@@ -170,7 +170,7 @@ def argmax(input: Tensor, dim: int) -> Tensor:
         Tensor of size batch x ...
 
     """
-    return (input == input.max(dim)[0]).float()
+    return (input == input.max(dim)[0]).float()  # type: ignore
 
 
 def softmax(input: Tensor, dim: int) -> Tensor:
