@@ -1,14 +1,13 @@
 from typing import Tuple, TypeVar, Any
 
-import numpy as np
 from numba import prange
 from numba import njit as _njit
 
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
-    MAX_DIMS,
-    Index,
+    MAX_DIMS,  # noqa: F401
+    Index,  # noqa: F401
     Shape,
     Strides,
     Storage,
@@ -21,7 +20,7 @@ from .tensor_functions import Function
 Fn = TypeVar("Fn")
 
 
-def njit(fn: Fn, **kwargs: Any) -> Fn:
+def njit(fn: Fn, **kwargs: Any) -> Fn:  # noqa: D103
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -92,7 +91,9 @@ def _tensor_conv1d(
 
     for batch_index in prange(batch):  # Iterate over each batch
         for out_channel in prange(out_channels):  # Iterate over output channels
-            for out_position in prange(out_width):  # Iterate over output width positions
+            for out_position in prange(
+                out_width
+            ):  # Iterate over output width positions
                 accumulated_sum = 0.0
 
                 for in_channel in prange(in_channels):  # Iterate over input channels
@@ -118,9 +119,7 @@ def _tensor_conv1d(
                             )
 
                             # Accumulate the convolution result
-                            accumulated_sum += (
-                                input[input_index] * weight[weight_index]
-                            )
+                            accumulated_sum += input[input_index] * weight[weight_index]
 
                 # Store the accumulated value in the output tensor
                 out_index = (
@@ -163,7 +162,7 @@ class Conv1dFun(Function):
         return output
 
     @staticmethod
-    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:  # noqa: D102
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels, kw = weight.shape
@@ -332,7 +331,7 @@ class Conv2dFun(Function):
         return output
 
     @staticmethod
-    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:  # noqa: D102
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels, kh, kw = weight.shape

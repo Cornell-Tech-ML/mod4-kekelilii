@@ -92,6 +92,7 @@ class TensorBackend:
         self.mul_reduce = ops.reduce(operators.mul, 1.0)
         self.matrix_multiply = ops.matrix_multiply
         self.cuda = ops.cuda
+        self.max_reduce = ops.reduce(operators.max, 0.0)
 
 
 class SimpleOps(TensorOps):

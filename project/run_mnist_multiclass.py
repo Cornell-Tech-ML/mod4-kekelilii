@@ -41,8 +41,7 @@ class Conv2d(minitorch.Module):
         self.bias = RParam(out_channels, 1, 1)
 
     def forward(self, input):
-        # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        return minitorch.conv2d(input, self.weights.value) + self.bias.value
 
 
 class Network(minitorch.Module):
@@ -67,12 +66,48 @@ class Network(minitorch.Module):
         self.mid = None
         self.out = None
 
-        # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        # Step 1: First convolutional layer (4 output channels, 3x3 kernel)
+        self.conv1 = Conv2d(1, 4, 3, 3)  # MNIST has 1 input channel (grayscale)
+
+        # Step 2: Second convolutional layer (8 output channels, 3x3 kernel)
+        self.conv2 = Conv2d(4, 8, 3, 3)
+
+        # Step 3: Fully connected layers
+        # After pooling, output size will be (batch_size, 8, 6, 6)
+        self.fc1 = Linear(392, 64)
+        self.fc2 = Linear(64, C)
+
+        # Dropout rate
+        self.dropout = 0.25
 
     def forward(self, x):
-        # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        # Step 1: Apply first convolutional layer + ReLU
+        x = self.conv1(x)
+        x = x.relu()
+        self.mid = x  # Save for visualization
+
+        # Step 2: Apply second convolutional layer + ReLU
+        x = self.conv2(x)
+        x = x.relu()
+        self.out = x  # Save for visualization
+
+        # Step 3: Max pooling
+        pooled = minitorch.maxpool2d(self.out, (4, 4))
+
+        # Step 4: Flatten
+        x = pooled.view(pooled.shape[0], 392)
+
+        # Step 5: Apply first fully connected layer + ReLU + Dropout
+        x = self.fc1(x)
+        x = x.relu()
+        if self.training:
+            x = minitorch.dropout(x, rate=self.dropout, ignore = not self.training)
+
+        # Step 6: Apply second fully connected layer
+        x = self.fc2(x)
+
+        # Step 7: Apply log-softmax over the class dimension
+        return minitorch.logsoftmax(x, dim=1)
 
 
 def make_mnist(start, stop):
@@ -171,4 +206,4 @@ class ImageTrain:
 
 if __name__ == "__main__":
     data_train, data_val = (make_mnist(0, 5000), make_mnist(10000, 10500))
-    ImageTrain().train(data_train, data_val, learning_rate=0.01)
+    ImageTrain().train(data_train, data_val, learning_rate=0.005, max_epochs=2)
